@@ -5,11 +5,11 @@ import java.math.BigDecimal;
 /**
  * Post-paid client
  */
-public class PostPaidClient extends Client
+public class PostPayedClient extends Client
 {
     private BigDecimal debt = BigDecimal.valueOf(0.0);
 
-    public PostPaidClient(String phoneNumber)
+    public PostPayedClient(String phoneNumber)
     {
         super(phoneNumber);
     }

@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="BillingServer:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/BillingServer_jar</output-path>
+    <root id="archive" name="BillingServer.jar">
+      <element id="module-output" name="BillingServer" />
+    </root>
+  </artifact>
+</component>

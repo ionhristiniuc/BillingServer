@@ -1,6 +1,7 @@
 package com.billingserver.data;
 
 import com.billingserver.data.clients.Client;
+import com.billingserver.data.clients.PostPayedClient;
 import com.billingserver.data.clients.PrePayedClient;
 
 import java.math.BigDecimal;
@@ -17,12 +18,12 @@ public class ClientsManager
     public ClientsManager()
     {
         clients = new LinkedList<>();
-        clients.add( new PrePayedClient( "060971255", BigDecimal.valueOf(50.00)));
+        clients.add( new PostPayedClient( "060971255" ));
         clients.add( new PrePayedClient( "068321605", BigDecimal.valueOf(100.00)));
         clients.add( new PrePayedClient( "069526844", BigDecimal.valueOf(50.00)));
     }
 
-    private Client getClient(String phoneNumber)
+    public Client getClient(String phoneNumber)
     {
         for (Client c : clients)
             if (c.getPhoneNumber().equals( phoneNumber ))

@@ -7,4 +7,17 @@ public interface ServerConnectionConstants
     String SEPARATOR = "|";
     String CONNECT = "CONN";
     String DISCONNECT = "DISCONN";
+
+    // operations
+    String CALL = "CALL";
+    String ANSWERED = "ANS";
+    String BALANCE = "BAL";
+    String STOP = "STOP";
+    // error
+    String INVALID_PHONE_NUMBER = "INV_P_NR";
+    String INVALID_PHONE_NUMBER_CALL = "INV_P_NR_C";
+    String OFFLINE = "OFFLINE";
+    String WAIT_RESPONSE = "WAIT_RESP";
+    String BUSY = "BUSY";
+    String NO_RESOURCES = "NO_RES";
 }
