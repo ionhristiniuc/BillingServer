@@ -2,7 +2,12 @@ package com.billingserver.calls;
 
 import com.billingserver.connection.ClientHandler;
 import com.billingserver.data.clients.Client;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
@@ -45,6 +50,24 @@ public abstract class Call
     {
         callStop = Instant.now();
         duration = Duration.between( callStart, callStop ).getSeconds();
+    }
+
+    protected static void writeRecord(String phone, long duration,
+                                      CallType callType, CommunicationType commType, BigDecimal ammount)
+    {
+        try
+        {
+            DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+
+            Document doc = docBuilder.newDocument();
+
+            Element rootElement = doc.createElement("Client");
+        }
+        catch (ParserConfigurationException e)
+        {
+            e.printStackTrace();
+        }
     }
 
     public long getDuration()
