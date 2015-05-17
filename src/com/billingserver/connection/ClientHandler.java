@@ -1,11 +1,11 @@
 package com.billingserver.connection;
 import com.billingserver.BillingServer;
-import com.billingserver.calls.Call;
-import com.billingserver.calls.PostPayedCall;
-import com.billingserver.calls.PrePayedCall;
+import com.billingserver.calls.*;
 import com.billingserver.data.clients.Client;
 import com.billingserver.data.clients.PostPayedClient;
 import com.billingserver.data.clients.PrePayedClient;
+import com.billingserver.operators.Moldcell;
+import com.billingserver.operators.Orange;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -76,6 +76,7 @@ public class ClientHandler implements Runnable
             try
             {
                 message = handler.receive();
+                displayMessage(message);
                 processMessage(message);
             }
             catch (IOException e)
@@ -103,15 +104,16 @@ public class ClientHandler implements Runnable
         switch (data[0])
         {
             case CALL:
-                call(data[1]);
+                call(data[1], CallType.Voice);
                 break;
             case ANSWERED:
-                Client caller = server.getClients().getClient(data[1]);
-                ClientHandler callerHandler = server.getClientHandlerMap().get(data[1]);
-                Call call = (caller instanceof PrePayedClient) ? new PrePayedCall(callerHandler, this) : new PostPayedCall(callerHandler, this);
-                server.getActiveCalls().add(call);
-                callerHandler.sendMessage(ANSWERED);
-                call.start();
+                answered(data[1], CallType.Voice);
+                break;
+            case CALL_VIDEO:
+                call(data[1], CallType.Video);
+                break;
+            case ANSWERED_VIDEO:
+                answered(data[1], CallType.Video);
                 break;
             case STOP:
                 Call c = server.getCall( phoneNumber );
@@ -128,23 +130,43 @@ public class ClientHandler implements Runnable
                 ClientHandler other = server.getClientHandlerMap().get( data[1] );
                 other.sendMessage(STOP);
                 break;
+            case PAUSE:
+                Call cl = server.getCall( phoneNumber );
+                cl.pause();
+                break;
+            case RELOAD:
+                server.getCall( phoneNumber ).reload();
+                break;
             case DISCONNECT:
                 server.getClientHandlerMap().remove(phoneNumber);
                 break;
             case BALANCE:
-                Client cl = server.getClients().getClient(phoneNumber);
-                if ( cl != null)
+                Client cln = server.getClients().getClient(phoneNumber);
+                if ( cln != null)
                 {
-                    if ( cl instanceof PrePayedClient )
-                        sendBalance( ((PrePayedClient) cl).getAmount() );
-                    else if ( cl instanceof PostPayedClient )
-                        sendBalance(((PostPayedClient)cl).getDebt());
+                    if ( cln instanceof PrePayedClient )
+                        sendBalance( ((PrePayedClient) cln).getAmount() );
+                    else if ( cln instanceof PostPayedClient )
+                        sendBalance(((PostPayedClient)cln).getDebt());
                 }
                 break;
         }
     }
 
-    private void call( String client )
+    private void answered( String callerName, CallType callType )
+    {
+        Client caller = server.getClients().getClient(callerName);
+        ClientHandler callerHandler = server.getClientHandlerMap().get(callerName);
+        boolean localOperator = Orange.isClient(callerName) || Moldcell.isClient(callerName);
+        CommunicationType communicationType = localOperator ? CommunicationType.Standard : CommunicationType.Roaming;
+        Call call = (caller instanceof PrePayedClient) ? new PrePayedCall(callerHandler, this, communicationType, callType)
+                : new PostPayedCall(callerHandler, this, communicationType,callType);
+        server.getActiveCalls().add(call);
+        callerHandler.sendMessage(ANSWERED);
+        call.start();
+    }
+
+    private void call( String client, CallType callType )
     {
         // no money
         Client sender = server.getClients().getClient(phoneNumber);
@@ -163,7 +185,8 @@ public class ClientHandler implements Runnable
                 if ( !server.isBusy( client ) )
                 {
                     handler.send(WAIT_RESPONSE + SEPARATOR + client);
-                    server.sendMessageToClient( client, CALL + SEPARATOR + phoneNumber );
+                    String messageHead = callType == CallType.Voice ? CALL : CALL_VIDEO;
+                    server.sendMessageToClient( client, messageHead + SEPARATOR + phoneNumber );
                 }
                 else
                     sendMessage( BUSY + SEPARATOR + client );

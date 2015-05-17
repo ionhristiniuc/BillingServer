@@ -1,7 +1,6 @@
 package com.billingserver.calls;
 
 import com.billingserver.connection.ClientHandler;
-import com.billingserver.data.clients.Client;
 import com.billingserver.data.clients.PostPayedClient;
 import com.billingserver.data.clients.Repository;
 
@@ -12,9 +11,9 @@ import java.math.BigDecimal;
  */
 public class PostPayedCall extends Call
 {
-    public PostPayedCall(ClientHandler caller, ClientHandler receiver)
+    public PostPayedCall(ClientHandler caller, ClientHandler receiver, CommunicationType communicationType, CallType callType)
     {
-        super(caller, receiver);
+        super(caller, receiver, communicationType, callType);
     }
 
     @Override
@@ -23,6 +22,6 @@ public class PostPayedCall extends Call
         super.stop();
         long sec = getDuration();
         PostPayedClient c = (PostPayedClient) Repository.getInstance().getClientsManager().getClient(getCaller().getPhoneNumber());
-        c.setDebt( c.getDebt().add(standardCharge.multiply( (BigDecimal.valueOf(sec) ) ) ) );
+        c.setDebt( c.getDebt().add(getCharge().multiply((BigDecimal.valueOf(sec))) ) );
     }
 }

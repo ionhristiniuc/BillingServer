@@ -3,7 +3,6 @@ package com.billingserver.calls;
 import com.billingserver.connection.ClientHandler;
 import com.billingserver.data.clients.PrePayedClient;
 import com.billingserver.data.clients.Repository;
-import org.omg.CORBA.NO_RESOURCES;
 
 import java.math.BigDecimal;
 import java.util.Timer;
@@ -17,9 +16,9 @@ public class PrePayedCall extends Call
 {
     private Timer timer = new Timer();
 
-    public PrePayedCall(ClientHandler caller, ClientHandler receiver)
+    public PrePayedCall(ClientHandler caller, ClientHandler receiver, CommunicationType communicationType, CallType callType)
     {
-        super(caller, receiver);
+        super(caller, receiver, communicationType, callType);
     }
 
     @Override
@@ -28,27 +27,42 @@ public class PrePayedCall extends Call
         super.start();
 
         PrePayedClient client = (PrePayedClient) Repository.getInstance().getClientsManager().getClient(getCaller().getPhoneNumber());
-        long availableSeconds = (long) client.getAmount().divide( standardCharge ).longValue();
+        long availableSeconds = (long) client.getAmount().divide( getCharge() ).longValue();
 
-        timer.schedule(new TimerTask()
+        timer.schedule(new MyTimerTask(availableSeconds), 0, 1000 );
+    }
+
+    class MyTimerTask extends TimerTask
+    {
+        private long value;
+
+        public MyTimerTask(long value)
         {
-            @Override
-            public void run()
+            this.value = value;
+        }
+
+        @Override
+        public void run()
+        {
+            if (value == 0)
             {
-                getCaller().sendMessage(NO_RESOURCES);
-                getReceiver().sendMessage(STOP);
+                getCaller().sendMessage(NO_RESOURCES + SEPARATOR + (getDuration() - getPauseDuration()));
+                getReceiver().sendMessage(STOP + SEPARATOR + (getDuration() - getPauseDuration()));
                 stop();
             }
-        }, availableSeconds * 1000);
+            if (!isPaused())
+                --value;
+        }
     }
 
     @Override
     public void stop()
     {
         super.stop();
-        long sec = getDuration();
+        long sec = getDuration() - getPauseDuration();
         PrePayedClient c = (PrePayedClient) Repository.getInstance().getClientsManager().getClient(getCaller().getPhoneNumber());
-        c.setAmount(c.getAmount().subtract(standardCharge.multiply((BigDecimal.valueOf(sec)))));
+        c.setAmount(c.getAmount().subtract(getCharge().multiply((BigDecimal.valueOf(sec)))));
         timer.cancel();
     }
+
 }

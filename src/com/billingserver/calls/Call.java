@@ -1,7 +1,6 @@
 package com.billingserver.calls;
 
 import com.billingserver.connection.ClientHandler;
-import com.billingserver.data.clients.Client;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -22,13 +21,22 @@ public abstract class Call
     private Instant callStart;
     private Instant callStop;
     private long duration;
-    protected static BigDecimal standardCharge = CallConstants.STD_CHARGE;
-    protected static BigDecimal roamingCharge = CallConstants.ROAMING_CHARGE;
+    private BigDecimal charge;
+    private CommunicationType communicationType;
+    private CallType callType;
+    private long pauseDuration;
+    private Instant pauseStart;
+    private Instant pauseStop;
+    private boolean paused = false;
 
-    public Call(ClientHandler caller, ClientHandler receiver)
+    public Call(ClientHandler caller, ClientHandler receiver, CommunicationType communicationType, CallType callType)
     {
         this.caller = caller;
         this.receiver = receiver;
+        this.communicationType = communicationType;
+        this.callType = callType;
+        charge = this.communicationType == CommunicationType.Roaming ? CallConstants.ROAMING_CHARGE : CallConstants.STD_CHARGE;
+        charge = this.callType == CallType.Video ? charge.multiply( BigDecimal.valueOf(2) ) : charge;
     }
 
     public ClientHandler getCaller()
@@ -44,6 +52,21 @@ public abstract class Call
     public void start()
     {
         callStart = Instant.now();
+    }
+
+    public void pause()
+    {
+        pauseStart = Instant.now();
+        paused = true;
+    }
+
+    public void reload()
+    {
+        pauseStop = Instant.now();
+        pauseDuration += Duration.between(pauseStart, pauseStop).getSeconds();
+        pauseStart = null;
+        pauseStop = null;
+        paused = false;
     }
 
     public void stop()
@@ -73,5 +96,20 @@ public abstract class Call
     public long getDuration()
     {
         return duration;
+    }
+
+    public BigDecimal getCharge()
+    {
+        return charge;
+    }
+
+    public boolean isPaused()
+    {
+        return paused;
+    }
+
+    public long getPauseDuration()
+    {
+        return pauseDuration;
     }
 }
