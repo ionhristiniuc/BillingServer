@@ -9,9 +9,10 @@ public class PostPayedClient extends Client
 {
     private BigDecimal debt = BigDecimal.valueOf(0.0);
 
-    public PostPayedClient(String phoneNumber)
+    public PostPayedClient(String phoneNumber, BigDecimal amount)
     {
         super(phoneNumber);
+        debt = amount;
     }
 
     public BigDecimal getDebt()

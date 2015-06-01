@@ -20,8 +20,11 @@ public class PostPayedCall extends Call
     public void stop()
     {
         super.stop();
-        long sec = getDuration();
+        long sec = getDuration() - getPauseDuration();
         PostPayedClient c = (PostPayedClient) Repository.getInstance().getClientsManager().getClient(getCaller().getPhoneNumber());
         c.setDebt( c.getDebt().add(getCharge().multiply((BigDecimal.valueOf(sec))) ) );
+
+//        PostPayedClient caller = (PostPayedClient) Repository.getInstance().getClientsManager().getClient(getCaller().getPhoneNumber());
+//        writeRecord(caller, (int) getDuration(), getReceiver().getPhoneNumber(), CallType.Voice, CommunicationType.Standard, caller.getDebt() );
     }
 }

@@ -19,6 +19,7 @@ public interface ServerConnectionConstants
     String STOP = "STOP";
     String PAUSE = "PAUSE";
     String RELOAD = "RELOAD";
+    String DURATION = "DUR";
 
     // video call
     String CALL_VIDEO = "CALL_V";

@@ -9,8 +9,10 @@ import com.billingserver.operators.Orange;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.regex.Pattern;
 import static com.billingserver.connection.ServerConnectionConstants.*;
+import static com.billingserver.calls.CallConstants.*;
 
 /**
  *
@@ -50,14 +52,23 @@ public class ClientHandler implements Runnable
     {
         try
         {
-            if (validate())
+            while (!validate())
             {
-                //enabled = true;
-                sendMessage(CONNECT);
-                server.getClientHandlerMap().put(phoneNumber, this);        // not thread-safe
-            }
-            else
                 sendMessage( INVALID_PHONE_NUMBER );
+            }
+
+            // validated
+            sendMessage(CONNECT);
+            server.getClientHandlerMap().put(phoneNumber, this);        // not thread-safe
+
+//            if (validate())
+//            {
+//                //enabled = true;
+//                sendMessage(CONNECT);
+//                server.getClientHandlerMap().put(phoneNumber, this);        // not thread-safe
+//            }
+//            else
+//                sendMessage( INVALID_PHONE_NUMBER );
         }
         catch (IOException e)
         {
@@ -117,22 +128,29 @@ public class ClientHandler implements Runnable
                 break;
             case STOP:
                 Call c = server.getCall( phoneNumber );
-                c.stop();
-                server.getActiveCalls().remove(c);
+                if ( c != null )
+                {
+                    c.stop();
+                    server.getActiveCalls().remove(c);
 
-                BigDecimal amount = BigDecimal.ZERO;
-                if ( c instanceof PostPayedCall)
-                    amount = ((PostPayedClient) server.getClients().getClient(c.getCaller().phoneNumber)).getDebt();
-                else if ( c instanceof PrePayedCall )
+                    BigDecimal amount = BigDecimal.ZERO;
+                    if ( c instanceof PostPayedCall)
+                        amount = ((PostPayedClient) server.getClients().getClient(c.getCaller().phoneNumber)).getDebt();
+                    else if ( c instanceof PrePayedCall )
                         amount = ((PrePayedClient) server.getClients().getClient(c.getCaller().phoneNumber)).getAmount();
 
-                c.getCaller().sendBalance(amount);
-                ClientHandler other = server.getClientHandlerMap().get( data[1] );
-                other.sendMessage(STOP);
+                    c.getCaller().sendMessage(DURATION + SEPARATOR + (c.getDuration() - c.getPauseDuration()) + SEPARATOR + amount);
+                    ClientHandler other = server.getClientHandlerMap().get( data[1] );
+                    other.sendMessage(STOP + SEPARATOR + data[1] + SEPARATOR + (c.getDuration() - c.getPauseDuration()));
+                }
                 break;
             case PAUSE:
                 Call cl = server.getCall( phoneNumber );
                 cl.pause();
+                if (this != cl.getCaller())
+                    server.sendMessageToClient( cl.getCaller().getPhoneNumber(),  PAUSE);
+                else
+                    server.sendMessageToClient( cl.getReceiver().getPhoneNumber(),  PAUSE);
                 break;
             case RELOAD:
                 server.getCall( phoneNumber ).reload();
@@ -149,6 +167,30 @@ public class ClientHandler implements Runnable
                     else if ( cln instanceof PostPayedClient )
                         sendBalance(((PostPayedClient)cln).getDebt());
                 }
+                break;
+            case SMS:
+                Client clnt = server.getClients().getClient(phoneNumber);
+                if ( clnt instanceof PostPayedClient )
+                {
+                    PostPayedClient postPayedClient = (PostPayedClient) clnt;
+                    postPayedClient.setDebt( postPayedClient.getDebt().add(SMS_CHARGE));
+                }
+                else if ( clnt instanceof PrePayedClient )
+                {
+                    PrePayedClient prePayedClient = (PrePayedClient) clnt;
+
+                    if ( prePayedClient.getAmount().subtract( SMS_CHARGE ).compareTo( BigDecimal.ZERO ) >= 0 )
+                    {
+                        prePayedClient.setAmount( prePayedClient.getAmount().subtract( SMS_CHARGE ) );
+                    }
+                    else
+                    {
+                        sendMessage( NO_RESOURCES );
+                        return;
+                    }
+                }
+
+                server.sendMessageToClient( data[1], SMS + SEPARATOR + Instant.now().toString() + SEPARATOR + phoneNumber + SEPARATOR + data[2]);
                 break;
         }
     }

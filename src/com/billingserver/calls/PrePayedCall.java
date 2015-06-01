@@ -1,6 +1,7 @@
 package com.billingserver.calls;
 
 import com.billingserver.connection.ClientHandler;
+import com.billingserver.data.clients.PostPayedClient;
 import com.billingserver.data.clients.PrePayedClient;
 import com.billingserver.data.clients.Repository;
 
@@ -27,7 +28,7 @@ public class PrePayedCall extends Call
         super.start();
 
         PrePayedClient client = (PrePayedClient) Repository.getInstance().getClientsManager().getClient(getCaller().getPhoneNumber());
-        long availableSeconds = (long) client.getAmount().divide( getCharge() ).longValue();
+        long availableSeconds = client.getAmount().divide( getCharge(), BigDecimal.ROUND_FLOOR ).longValue();
 
         timer.schedule(new MyTimerTask(availableSeconds), 0, 1000 );
     }
@@ -63,6 +64,9 @@ public class PrePayedCall extends Call
         PrePayedClient c = (PrePayedClient) Repository.getInstance().getClientsManager().getClient(getCaller().getPhoneNumber());
         c.setAmount(c.getAmount().subtract(getCharge().multiply((BigDecimal.valueOf(sec)))));
         timer.cancel();
+
+//        PrePayedClient caller = (PrePayedClient) Repository.getInstance().getClientsManager().getClient(getCaller().getPhoneNumber());
+//        writeRecord(caller, (int) getDuration(), getReceiver().getPhoneNumber(), CallType.Voice, CommunicationType.Standard, caller.getAmount());
     }
 
 }
